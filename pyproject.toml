@@ -15,7 +15,9 @@ dependencies = [
     "pandas>=2.0.3",
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0",
-    "python-certifi-win32==1.6.1"
+    "python-certifi-win32==1.6.1",
+    "httpx==0.28.1",
+    "pydantic-ai-slim[anthropic]>=1.0.15",
 ]
 
 [tool.uv]

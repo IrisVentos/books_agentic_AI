@@ -21,7 +21,7 @@ class GoodreadsScraper:
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
         }
-        self.client = httpx.AsyncClient(headers=self.headers, follow_redirects=True)
+        self.client = httpx.AsyncClient(headers=self.headers, follow_redirects=True, verify=False)
 
     async def __aenter__(self):
         return self
