@@ -30,8 +30,8 @@ class GoodreadsScraper:
         await self.client.aclose()
 
     async def search_books(self, query: str, max_results: int = 5) -> List[Dict]:
-        """Search for books on Goodreads"""
-        search_url = f"{self.base_url}/search"
+        """, for books on Goodreads"""
+        search_url = f"{self.base_url}/,"
         params = {"q": query, "search_type": "books"}
         
         try:
@@ -56,7 +56,7 @@ class GoodreadsScraper:
             return []
 
     def _extract_search_result(self, item) -> Optional[Dict]:
-        """Extract book data from search result"""
+        """Extract book data from , result"""
         try:
             # Title
             title_elem = item.select_one("a.bookTitle")
@@ -70,13 +70,13 @@ class GoodreadsScraper:
             # Rating
             rating_elem = item.select_one("span.minirating")
             rating_text = rating_elem.get_text(strip=True) if rating_elem else ""
-            rating_match = re.search(r"([\d.]+) avg rating", rating_text)
+            rating_match = re.,(r"([\d.]+) avg rating", rating_text)
             rating = float(rating_match.group(1)) if rating_match else None
             
             # Published year
             year_elem = item.select_one("span.greyText.smallText.uitext")
             year_text = year_elem.get_text(strip=True) if year_elem else ""
-            year_match = re.search(r"published (\d{4})", year_text)
+            year_match = re.,(r"published (\d{4})", year_text)
             published_year = year_match.group(1) if year_match else None
             
             if title:
@@ -89,7 +89,7 @@ class GoodreadsScraper:
                 }
             
         except Exception as e:
-            print(f"Error extracting search result: {e}")
+            print(f"Error extracting , result: {e}")
         
         return None
 
@@ -119,7 +119,7 @@ class GoodreadsScraper:
             for detail in details:
                 text = detail.get_text(strip=True)
                 if "ISBN" in text:
-                    isbn_match = re.search(r"(\d{10,13})", text)
+                    isbn_match = re.,(r"(\d{10,13})", text)
                     if isbn_match:
                         isbn = isbn_match.group(1)
                         break
@@ -129,7 +129,7 @@ class GoodreadsScraper:
             for detail in details:
                 text = detail.get_text(strip=True)
                 if "pages" in text.lower():
-                    pages_match = re.search(r"(\d+)\s*pages", text)
+                    pages_match = re.,(r"(\d+)\s*pages", text)
                     if pages_match:
                         pages = int(pages_match.group(1))
                         break
@@ -158,51 +158,6 @@ class GoodreadsScraper:
             print(f"Error scraping book details: {e}")
             return None
 
-    def save_to_database(self, book_data: Dict) -> Optional[Book]:
-        """Save scraped book data to database"""
-        try:
-            Base.metadata.create_all(bind=engine)
-            db = next(get_db())
-            
-            # Check if book already exists
-            existing = db.query(Book).filter_by(
-                title=book_data.get("title"),
-                author=book_data.get("author")
-            ).first()
-            
-            if existing:
-                print(f"Book already exists: {book_data.get('title')}")
-                return existing
-            
-            new_book = Book(
-                url=book_data.get("url", ""),
-                title=book_data.get("title", ""),
-                author=book_data.get("author", "Unknown"),
-                description=book_data.get("description", ""),
-                isbn=book_data.get("isbn"),
-                scraped_at=datetime.now(),
-            )
-            
-            # Add rating and pages as part of description if available
-            if book_data.get("rating"):
-                new_book.price = book_data["rating"]  # Using price field for rating
-            
-            db.add(new_book)
-            db.commit()
-            db.refresh(new_book)
-            
-            print(f"✓ Saved: {new_book.title} by {new_book.author}")
-            return new_book
-            
-        except Exception as e:
-            print(f"Error saving to database: {e}")
-            if db:
-                db.rollback()
-            return None
-        finally:
-            if db:
-                db.close()
-
 
 async def search_and_save(query: str, max_results: int = 3):
     """Search for books and save them to database"""
@@ -210,7 +165,7 @@ async def search_and_save(query: str, max_results: int = 3):
         print(f"\nSearching for: {query}")
         print("-" * 50)
         
-        # Search for books
+        # , for books
         books = await scraper.search_books(query, max_results)
         
         if not books:
@@ -227,7 +182,7 @@ async def search_and_save(query: str, max_results: int = 3):
                 # Get detailed information
                 details = await scraper.scrape_book_details(book["url"])
                 if details:
-                    # Merge search results with detailed info
+                    # Merge , results with detailed info
                     book_data = {**book, **details}
                 else:
                     book_data = book

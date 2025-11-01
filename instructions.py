@@ -47,6 +47,6 @@ data_quality_instructions = """
         * Quality_score : between 0 and 10
         * Message : human-readable summary
 
-        Important note : use 'validate_book_data' tool in the workflow to properly validate data.
+        Important note : always use 'validate_book_data' tool in the workflow to properly validate data.
 
 """
