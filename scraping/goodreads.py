@@ -70,13 +70,13 @@ class GoodreadsScraper:
             # Rating
             rating_elem = item.select_one("span.minirating")
             rating_text = rating_elem.get_text(strip=True) if rating_elem else ""
-            rating_match = re.,(r"([\d.]+) avg rating", rating_text)
+            rating_match = re.search(r"([\d.]+) avg rating", rating_text)
             rating = float(rating_match.group(1)) if rating_match else None
             
             # Published year
             year_elem = item.select_one("span.greyText.smallText.uitext")
             year_text = year_elem.get_text(strip=True) if year_elem else ""
-            year_match = re.,(r"published (\d{4})", year_text)
+            year_match = re.search(r"published (\d{4})", year_text)
             published_year = year_match.group(1) if year_match else None
             
             if title:
@@ -119,7 +119,7 @@ class GoodreadsScraper:
             for detail in details:
                 text = detail.get_text(strip=True)
                 if "ISBN" in text:
-                    isbn_match = re.,(r"(\d{10,13})", text)
+                    isbn_match = re.search(r"(\d{10,13})", text)
                     if isbn_match:
                         isbn = isbn_match.group(1)
                         break
@@ -129,7 +129,7 @@ class GoodreadsScraper:
             for detail in details:
                 text = detail.get_text(strip=True)
                 if "pages" in text.lower():
-                    pages_match = re.,(r"(\d+)\s*pages", text)
+                    pages_match = re.search(r"(\d+)\s*pages", text)
                     if pages_match:
                         pages = int(pages_match.group(1))
                         break
