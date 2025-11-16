@@ -41,6 +41,13 @@ data_quality_agent = Agent(
     deps_type = BookContext,
 )
 
+persistence_agent = Agent(
+    model=model,
+    output_type=PersistenceResult,
+    instructions=persistence_instructions,
+    deps_type=BookContext,
+)
+
 async def extract_book_search_info(user_input: str, context : BookContext) -> BookSearchInfo:
     """Extract book search information from user input"""
     result = await search_book_agent.run(user_input,deps=context)
@@ -52,43 +59,43 @@ async def search_and_scrape_books(
     search_query: str, 
     max_results: int = MAX_SEARCH_RESULTS,
 ) -> dict[str, any]:
-    if i == 1:  # First book
-        ctx.deps.book_details = details
+    try:
+        
+        if i == 1:  # First book
+            ctx.deps.book_details = details
+            
+            # Print detailed book information
+            print(f"\n{'=' * 60}")
+            print(f"BOOK DETAILS")
+            print(f"{'=' * 60}")
+            print(f"Title: {details.get('title', 'N/A')}")
+            print(f"Author: {details.get('author', 'N/A')}")
+            
+            if details.get("rating"):
+                print(f"Rating: {details.get('rating')}")
+            
+            if details.get("description"):
+                desc = details.get("description", "")[:200]
+                print(f"Description: {desc}...")
+            
+            if details.get("genres"):
+                print(f"Genres: {', '.join(details.get('genres', []))}")
+            
+            if details.get("pages"):
+                print(f"Pages: {details.get('pages')}")
+            
+            if details.get("published_date"):
+                print(f"Published: {details.get('published_date')}")
+            
+            if details.get("isbn"):
+                print(f"ISBN: {details.get('isbn')}")
+            
+            print(f"{'=' * 60}\n")
+            
     except Exception as e:
         error_msg = f"Scraping error: {str(e)}"
         ctx.deps.scraping_errors.append(error_msg)
         return {"error": error_msg, "books": []}
-
-if i == 1:
-    ctx.deps.book_details = details
-    
-    # Print detailed book information
-    print(f"\n{'=' * 60}")
-    print(f"BOOK DETAILS")
-    print(f"{'=' * 60}")
-    print(f"Title: {details.get('title', 'N/A')}")
-    print(f"Author: {details.get('author', 'N/A')}")
-    
-    if details.get("rating"):
-        print(f"Rating: {details.get('rating')}")
-    
-    if details.get("description"):
-        desc = details.get("description", "")[:200]
-        print(f"Description: {desc}...")
-    
-    if details.get("genres"):
-        print(f"Genres: {', '.join(details.get('genres', []))}")
-    
-    if details.get("pages"):
-        print(f"Pages: {details.get('pages')}")
-    
-    if details.get("published_date"):
-        print(f"Published: {details.get('published_date')}")
-    
-    if details.get("isbn"):
-        print(f"ISBN: {details.get('isbn')}")
-    
-    print(f"{'=' * 60}\n")
 
 
 @data_quality_agent.tool
@@ -131,6 +138,29 @@ async def validate_book_data(ctx: RunContext[BookContext]) -> DataQualityResult:
         quality_score=quality_score,
         message=f"Data quality: {'Valid' if valid else 'Issues found'}",
     )
+
+@data_quality_agent.tool
+async def request_database_save(
+    ctx : RunContext[BookContext]
+) -> dict[str,Any]:
+    """Request the persistence agent to save data"""
+
+    if not ctx.deps.book_details:
+        return {"error":"No book data"}
+    
+    print (" \ n requesting database save...")
+
+    #call Persistence agent
+    save_result = await persistence_agent.run(
+        "Save the book data to database",
+        deps=ctx.deps
+    )
+    print(f" {save_result.output.message}")
+
+    return {
+            "success": save_result.output.success,
+            "book_id": save_result.output.book_id,
+    }
 
 @search_book_agent.tool
 async def request_data_quality_check(ctx: RunContext[BookContext]) -> dict[str, Any]:
@@ -178,6 +208,65 @@ async def process_user_input(user_input: str) -> BookContext:
         context.scraping_errors.append(str(e))
         return context
 
+@persistence_agent.tool
+async def save_book_to_database(ctx: RunContext[BookContext]) -> PersistenceResult:
+    """Save book data to the database."""
+    from datetime import datetime
+    from db_config import get_db
+    from models.book import Book, Base
+    
+    # Check if we have data
+    if not ctx.deps.book_details:
+        return PersistenceResult(
+            success=False,
+            message="No book data to save",
+            errors=["No book details in context"]
+        )
+    
+    try:
+        # Create tables
+        Base.metadata.create_all(bind=engine)
+        
+        book = ctx.deps.book_details
+        db = next(get_db())
+        
+        try:
+            # Create book record
+            new_book = Book(
+                url=book.get("url"),
+                title=book.get("title"),
+                author=book.get("author"),
+                description=book.get("description", ""),
+                rating=book.get("rating"),
+                scraped_at=datetime.now(),
+                ai_processed_at=datetime.now()
+            )
+            
+            db.add(new_book)
+            db.commit()
+            db.refresh(new_book)
+            
+            # Update context
+            ctx.deps.is_saved_to_db = True
+            ctx.deps.db_book_id = new_book.id
+            
+            return PersistenceResult(
+                success=True,
+                book_id=new_book.id,
+                message=f"Book saved with ID {new_book.id}"
+            )
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        error_msg = f"Database error: {str(e)}"
+        ctx.deps.save_errors.append(error_msg)
+        return PersistenceResult(
+            success=False,
+            message="Failed to save",
+            errors=[error_msg]
+        )
 
 async def main():
     """Main function - intelligent book search"""
