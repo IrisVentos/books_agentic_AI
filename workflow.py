@@ -269,10 +269,10 @@ async def save_book_to_database(ctx: RunContext[BookContext]) -> PersistenceResu
         )
 
 async def main():
-    """Main function - intelligent book search"""
+    """Main function - intelligent book search & save"""
 
     print("=" * 60)
-    print("📚 Intelligent Book Manager")
+    print("📚 Intelligent Book Manager (3-agent system)")
     print("=" * 60)
     print("Enter your request (or 'quit' to exit):\n")
 
@@ -287,10 +287,21 @@ async def main():
             context = await process_user_input(user_input)
 
             if context.book_details:
-                print ("\n Success!")
+                print("\n Success!")
+                print(f"    {context.book_details.get('title')}")
             if context.scraping_errors:
-                print (f"\n Encountered {len(context.scraping_errors)} error(s)")
-
+                print(f"\n Encountered {len(context.scraping_errors)} error(s)")
+            
+            if context.is_data_quality_checked:
+                print(" Quality: CHECKED")
+            else:
+                print(" Quality: NOT CHECKED")
+        
+            if context.is_saved_to_db:
+                print(f" Database: SAVED (ID: {context.db_book_id})")
+            else:
+                print(" Database: NOT SAVED")
+            
             print("\n" + "-" * 60)
             print("Enter another request (or 'quit' to exit):")
         else:
